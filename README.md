@@ -26,22 +26,22 @@ file (~4,700 lines with five months of incident-response history) — see
  Binance (OHLCV, funding rate)      YouTube (RSS feed, 3 channels)
               │                                  │
               ▼                                  ▼
-    ┌──────────────────┐              ┌────────────────────────┐
-    │   signal scanner   │              │      kol_fetch.py       │
-    │  (stacked filters)  │              │ native captions, or      │
-    └─────────┬──────────┘              │ Whisper fallback         │
-              │                          └───────────┬─────────────┘
+    ┌────────────────────┐                ┌────────────────────────┐
+    │   signal scanner   │                │      kol_fetch.py      │
+    │  (stacked filters) │                │ native captions, or    │
+    └─────────┬──────────┘                │ Whisper fallback       │
+              │                           └───────────┬────────────┘
               │                                       │ transcripts
               ▼                                       ▼
-    ┌──────────────────┐              ┌────────────────────────┐
-    │   entry / exit     │◀────────────│  risk parameters         │
-    │   (positions)       │  support/   │  (support/resistance,     │
-    └─────────┬──────────┘  resistance  │   blacklist, bias)        │
-              │              zones      └────────────────────────┘
+    ┌──────────────────┐               ┌────────────────────────┐
+    │   entry / exit   │◀──────────── │  risk parameters       │
+    │   (positions)    │  support/     │  (support/resistance,  │
+    └─────────┬────────┘  resistance   │   blacklist, bias)     │
+              │              zones     └────────────────────────┘
               ▼
     ┌──────────────────┐
-    │ fast_direction_    │   60s reconciliation between scans
-    │  watch.py           │   (see the incident story below)
+    │ fast_direction_  │   60s reconciliation between scans
+    │  watch.py        │   (see the incident story below)
     └──────────────────┘
 ```
 
