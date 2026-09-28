@@ -1,5 +1,7 @@
 # Crypto Futures Trading Bot (Showcase)
 
+> 繁體中文版： [README.zh-TW.md](README.zh-TW.md)
+
 A 24/7 crypto-futures trading bot that combines a stacked technical-signal
 scanner with a pipeline that turns YouTube market commentary into
 machine-readable risk parameters, running on Binance USDⓈ-M perpetuals.
@@ -17,8 +19,8 @@ file (~4,700 lines with five months of incident-response history) — see
 - Dependency-injected, unit-tested risk-engineering code in a codebase that
   otherwise has no test framework — because the one piece that reacts to a
   real exchange-side failure mode is exactly the piece worth pinning down
-- A concrete incident → fix → regression-test story (`fast_direction_watch.py`),
-  not just a finished system with the debugging history erased
+- Two concrete incident → fix → regression-test stories, not just a
+  finished system with the debugging history erased
 
 ## Architecture
 
@@ -107,6 +109,37 @@ python test_fast_direction_watch.py
 #  16/16 scenarios passed
 ```
 
+### 4. A second incident, this one caused by looking in the wrong place (`check_algo_protection.py`)
+
+For a long time this project's documentation stated, as established fact,
+that the exchange's demo environment couldn't see or cancel conditional
+(stop-loss/take-profit) orders. Investigating a third occurrence of the
+reverse-position bug above turned up the actual explanation: Binance had
+moved conditional orders to a separate "Algo" order service. The bot's
+order-status checks were calling the legacy endpoints, which correctly
+return nothing for an Algo order — not because the order is missing, but
+because they're the wrong endpoint. Querying with the right parameter
+found the same orders immediately, correct status and trigger price
+included. What had been treated as a demo-environment defect for months
+was a wrong-endpoint artifact in the bot's own code.
+
+`check_algo_protection.py` is the read-only audit written in response:
+it checks every open position has a live, correctly-priced stop order on
+the exchange side, and separately tracks two exchange-side failure modes
+across recent history — orders that over-filled into a reverse position
+(see above), and orders that were triggered but rejected outright, leaving
+a position briefly unprotected either way. It deliberately does **not**
+change the order-placement code path itself; the project's own established
+pattern is that touching order logic in the middle of an incident is how
+incidents get bigger, not smaller. A fix is gated behind an explicit,
+pre-written trigger condition instead (see the script's docstring) —
+measure first, then earn the right to act on what was measured.
+
+```bash
+python check_algo_protection.py --selftest
+#  20/20 scenarios passed
+```
+
 ## Risk framework (structure, not current live parameters)
 
 | Mechanism | Approach |
@@ -139,6 +172,7 @@ runs in a private repository and is not included here, both because most
 of it is specific operational history rather than illustrative code, and
 because the exact live strategy parameters aren't something I'm looking to
 publish. No API keys, account data, or live trading records are part of
-this excerpt.
+this excerpt; `check_algo_protection.py`'s default risk parameters are
+representative values, not the currently-live configuration.
 
 This project is for educational/research purposes and is not financial advice.
