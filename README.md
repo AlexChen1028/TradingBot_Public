@@ -19,8 +19,10 @@ file (~4,700 lines with five months of incident-response history) — see
 - Dependency-injected, unit-tested risk-engineering code in a codebase that
   otherwise has no test framework — because the one piece that reacts to a
   real exchange-side failure mode is exactly the piece worth pinning down
-- Two concrete incident → fix → regression-test stories, not just a
+- Three concrete incident → fix → regression-test stories, not just a
   finished system with the debugging history erased
+- A self-critical writeup of the project's own backtest methodology,
+  including the seven reasons an early version of it couldn't be trusted
 
 ## Architecture
 
@@ -139,6 +141,40 @@ measure first, then earn the right to act on what was measured.
 python check_algo_protection.py --selftest
 #  20/20 scenarios passed
 ```
+
+### 5. Not claiming false confidence (`stale_gate_report.py`)
+
+A smaller story, but a real one. The full audit suite reports on trading
+gates that go stale — support/resistance levels no longer backed by any
+current market call, directional biases that quietly started blocking
+100% of one side. An early version of the reporting layer printed a green
+checkmark on every line unconditionally. One of the audit's data sources
+only exists in the production container, not on a dev machine — so on a
+dev machine, "this wasn't checked" and "this was checked and is fine"
+rendered as the exact same green checkmark. For a while, an entire audit
+path was silently not running, and nothing on screen said so.
+
+The fix is the three-state distinction in this file: **issues** (exit 1),
+**couldn't verify** (exit 2 — a distinct state, not a fallback to "ok"),
+and **actually healthy** (exit 0, the only state `--quiet` is allowed to
+silence). It's a small function, but it's the one place a "totally clean"
+report and a "we have no idea" report are guaranteed not to look the same.
+
+```bash
+python stale_gate_report.py
+#  8/8 scenarios passed
+```
+
+## Backtesting: what it can and can't tell you
+
+[`BACKTESTING.md`](BACKTESTING.md) is an adapted excerpt of the private
+repo's internal writeup on why an early exploratory backtest script
+*could not* validate the live strategy — seven concrete methodology
+problems (survivorship bias in the coin pool, no leverage in the fee
+math, look-ahead-free but economically meaningless exit logic, and more),
+plus what an actually-valid backtest of this system would require. It's
+included because the reasoning is more useful than a return number would
+have been — which is also why no return number is quoted, here or there.
 
 ## Risk framework (structure, not current live parameters)
 
